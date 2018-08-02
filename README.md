@@ -74,7 +74,7 @@ $ bivartect -2 <normal.fastq> <tumor.fastq> -r <output.txt>
 ```
 
 ## Data
-* Simulated benchmark data used in this work are available upon request.
+* Simulated benchmark data used in this work are available upon request due to large data size.
 
 ## Reference
 Keisuke Shimmura, Yuki Kato and Yukio Kawahara,
