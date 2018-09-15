@@ -1,6 +1,6 @@
 # Bivartect
 
-**Accurate and memory-saving detection of genomic structural variations via direct comparison of sequence reads**
+### Accurate and memory-saving detection of genomic structural variations via direct comparison of sequence reads
 
 Last updated: 2018-09-15
 
