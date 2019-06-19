@@ -75,7 +75,7 @@ $ bivartect -2 <normal.fastq> <tumor.fastq> -r <output.txt>
 ## Pipeline
 The standard use of Bivartect is illustrated with the following steps:
 
-### Step 1: run Bivartect to get a FASTQ file that contains consensus normal reads whose mutated counterparts are predicted to have breakpoints
+### Step 1: run Bivartect to get FASTQ consensus normal reads whose mutated counterparts are predicted to have breakpoints
 ```
 $ bivartect -5 <normal_1.fastq> <normal_2.fastq> <tumor_1.fastq> <tumor_2.fastq> <out.fastq>
 ```
@@ -86,7 +86,7 @@ $ bwa aln <index_prefix> <out.fastq> > <out.sai>
 $ bwa samse -f <out.sam> <index_prefix> <out.sai> <out.fastq>
 ```
 
-### Step 3: convert a mapping result SAM file for Bivartect into a list of predicted variants in VCF format
+### Step 3: convert SAM alignments for Bivartect into predicted VCF variants
 ```
 $ ./sam2vcf.py <out.sam> > <out.vcf> 
 ```
