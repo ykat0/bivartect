@@ -75,7 +75,7 @@ $ bivartect -2 <normal.fastq> <tumor.fastq> -r <output.txt>
 ## Pipeline
 The standard use of Bivartect is illustrated with the following steps:
 
-### Step 1: run Bivartect to get FASTQ consensus normal reads whose mutated counterparts are predicted to have breakpoints
+### Step 1: run Bivartect to get consensus normal FASTQ reads whose mutated counterparts are predicted to have breakpoints
 ```
 $ bivartect -5 <normal_1.fastq> <normal_2.fastq> <tumor_1.fastq> <tumor_2.fastq> <out.fastq>
 ```
