@@ -52,7 +52,7 @@ def revComp(seq):
 r1 = re.compile(r"@")
 r2 = re.compile(r"(\S+)\s+(\d+)\s+(\S+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\d+)\s+(\d+)\s+(\w+)")
 r3 = re.compile(r"(\d+):(\w+):([\w\-\*]+):([\w\-\*]+)")
-vcf = {} # Dictonary of {(CHROM, POS, REF, ALT):[ID, QUAL, FILTER, INFO]}
+vcfs = {} # Dictonary of {(CHROM, POS, REF, ALT):[ID, QUAL, FILTER, INFO]}
 char_numbers = {"X":97, "Y":98, "MT":99} # Dictionary of {chars:int}
 number_chars = {97:"X", 98:"Y", 99:"MT"} # Dictionary of {int:chars}
 
@@ -163,13 +163,13 @@ with open(args.sam, "r") as f:
                 
                 locus = (chrnum, bp, ref, alt)
                 
-                if not locus in vcf:
-                    vcf[locus] = [id, ".", ".", info]
+                if not locus in vcfs:
+                    vcfs[locus] = [id, ".", ".", info]
 
 # Output
 print("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO")
 
-for locus in sorted(vcf, key=operator.itemgetter(0, 1)):
+for locus in sorted(vcfs, key=operator.itemgetter(0, 1)):
     chrchar = ""
 
     if locus[0] == 97 or locus[0] == 98 or locus[0] == 99:
@@ -179,12 +179,12 @@ for locus in sorted(vcf, key=operator.itemgetter(0, 1)):
         chrchar = str(locus[0])
     
     pos = locus[1]
-    id = vcf[locus][0]
+    id = vcfs[locus][0]
     ref = locus[2]
     alt = locus[3]
-    qual = vcf[locus][1]
-    filter = vcf[locus][2]
-    info = vcf[locus][3]
+    qual = vcfs[locus][1]
+    filter = vcfs[locus][2]
+    info = vcfs[locus][3]
 
     print(chrchar, pos, id, ref, alt, qual, filter, sep='\t', end='\t')
     print(info)
