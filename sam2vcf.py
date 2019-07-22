@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# sam2vcf.py ver. 1.0.7
+# sam2vcf.py ver. 1.1.0
 # Copyright (C) 2019 Yuki Kato
 # This script is used to convert SAM alignments for Bivartect into predicted VCF variants.
 # The output will be shown in standard out.
@@ -9,22 +9,52 @@
 # DIV: deletion/insertion variant
 # SV: structural variant of length >= 50 bp
 # BP: unassigned breakpoint
-# Note: small indels and structural variants on the reverse strand will appear on the forward strand in the VCF output. The leftmost position (POS) with "IMPRECISE" INFO is a best approximate due to the Bivartect's prediction on the reverse strand.
+# Note: predicted variants on the reverse strand will appear on the forward strand in the VCF output.
 # Usage: Type "./sam2vcf.py -h" in your terminal.
 
 import argparse
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
-    usage='./sam2vcf.py [option]* <sam>',
-    description='sam2vcf.py ver. 1.0.7\n\nThis script is used to convert SAM alignments for Bivartect into predicted VCF variants.\nThe output will be shown in standard out.\n\nThe variation class (VC) consists of:\n\n SNV: single nucleotide variant\n DIV: deletion/insertion variant\n SV: structural variant of length >= 50 bp\n BP: unassigned breakpoint\n\nNote: small indels and structural variants on the reverse strand will appear on the forward strand in the VCF output.\nThe leftmost position (POS) with "IMPRECISE" INFO is a best approximate due to the Bivartect\'s prediction on the reverse strand.'
+    usage='./sam2vcf.py [option]* <sam> <fasta>',
+    description='sam2vcf.py ver. 1.1.0\n\nThis script is used to convert SAM alignments for Bivartect into predicted VCF variants.\nThe output will be shown in standard out.\n\nThe variation class (VC) consists of:\n\n SNV: single nucleotide variant\n DIV: deletion/insertion variant\n SV: structural variant of length >= 50 bp\n BP: unassigned breakpoint\n\nNote: predicted variants on the reverse strand will appear on the forward strand in the VCF output.'
 )
 parser.add_argument('sam', metavar='sam <STR>', type=str,
                     help='path to the SAM alignments for Bivartect')
+parser.add_argument('fasta', metavar='fasta <STR>', type=str,
+                    help='path to the (gzipped) reference FASTA sequence')
 args = parser.parse_args()
 
 import re
+import gzip
 import operator
+
+def readFASTA(obj, num_lines):
+    chrnum = 0
+    seq = ""
+
+    for i, line in enumerate(obj):
+        if i != num_lines - 1:
+            m2 = r2.match(line)
+
+            if m2: # Header in FASTA
+                if i != 0:
+                    reference[chrnum] = seq # For the previous chromosome
+
+                if m2.group(1) == "X" or m2.group(1) == "Y" or m2.group(1) == "MT":
+                    chrnum = char_numbers[m2.group(1)] # Initialization
+                
+                else:
+                    chrnum = int(m2.group(1)) # Initialization
+                
+                seq = "" # Initialization
+
+            else:
+                seq += line.strip()
+        
+        elif i == num_lines - 1:
+            seq += line.strip()
+            reference[chrnum] = seq # For the current chromosome
 
 def revComp(seq):
     if seq == "-":
@@ -47,28 +77,51 @@ def revComp(seq):
     
     return rc_seq
 
-# SAM file
-# QNAME FLAG RNAME POS MAPQ CIGAR RNEXT PNEXT TLEN SEQ
-r1 = re.compile(r"@")
-r2 = re.compile(r"(\S+)\s+(\d+)\s+(\S+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\d+)\s+(\d+)\s+(\w+)")
-r3 = re.compile(r"(\d+):(\w+):([\w\-\*]+):([\w\-\*]+)")
-vcfs = {} # Dictonary of {(CHROM, POS, REF, ALT):[ID, QUAL, FILTER, INFO]}
+# Read the FASTA input
+r1 = re.compile(r"\.gz$")
+gz = False
+
+if r1.search(args.fasta):
+    gz = True
+
+r2 = re.compile(r">(\w+)")
 char_numbers = {"X":97, "Y":98, "MT":99} # Dictionary of {chars:int}
 number_chars = {97:"X", 98:"Y", 99:"MT"} # Dictionary of {int:chars}
+reference = {} # Dictionary of {chrnum:reference_seq}
 
+if gz:
+    num_lines = sum(1 for i in gzip.open(args.fasta, "rt"))
+
+    with gzip.open(args.fasta, "rt") as f:
+        readFASTA(f, num_lines)
+
+else:
+    num_lines = sum(1 for i in open(args.fasta, "r"))
+
+    with open(args.fasta, "r") as f:
+        readFASTA(f, num_lines)
+
+# SAM file
+# QNAME FLAG RNAME POS MAPQ CIGAR RNEXT PNEXT TLEN SEQ
+r3 = re.compile(r"@")
+r4 = re.compile(r"(\S+)\s+(\d+)\s+(\S+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\d+)\s+(\d+)\s+(\w+)")
+r5 = re.compile(r"(\d+):(\w+):([\w\-\*]+):([\w\-\*]+)")
+vcfs = {} # Dictonary of {(CHROM, POS, REF, ALT):[ID, QUAL, FILTER, INFO]}
+
+# Read the SAM input
 with open(args.sam, "r") as f:
     for line in f:
-        m1 = r1.match(line)
+        m3 = r3.match(line)
 
-        if not m1:
-            m2 = r2.match(line)
+        if not m3:
+            m4 = r4.match(line)
 
-            if m2:
-                qname = m2.group(1)
-                flag = int(m2.group(2))
-                rname = m2.group(3)
-                pos = int(m2.group(4))
-                seq = m2.group(10)
+            if m4:
+                qname = m4.group(1)
+                flag = int(m4.group(2))
+                rname = m4.group(3)
+                pos = int(m4.group(4))
+                seq = m4.group(10)
                 bp = 0
                 id = 0
                 ref = "."
@@ -91,16 +144,16 @@ with open(args.sam, "r") as f:
                 else:
                     chrnum = int(rname)
                 
-                m3 = r3.match(qname)
+                m5 = r5.match(qname)
                 
-                if m3:
+                if m5:
                     # Parse a Bivartect output header
-                    id = int(m3.group(1))
-                    vc = m3.group(2)
-                    ref = m3.group(3)
-                    alt = m3.group(4)
+                    id = int(m5.group(1))
+                    vc = m5.group(2)
+                    ref = m5.group(3)
+                    alt = m5.group(4)
 
-                    # Set appropriate bp, ref, alt & info depending on SVTYPE & strand
+                    # Set appropriate bp, ref, alt & info depending on VC & strand
                     # Case: SNV
                     if vc == "SNV":
                         info = "VC=SNV" # VC: variation class
@@ -109,6 +162,7 @@ with open(args.sam, "r") as f:
                             bp = pos - 1
                             ref = revComp(ref)
                             alt = revComp(alt)
+                        
                         else: # Forward strand
                             bp = pos + len(seq)
                     
@@ -116,16 +170,17 @@ with open(args.sam, "r") as f:
                     elif ref == "-":
                         if "*" in alt:
                             info = "VC=SV"
+                        
                         else:
                             info = "VC=DIV" # DIV: deletion/insertion variant
                         
                         if flag == 16: # Reverse strand
-                            bp = pos # Best estimate
-                            ref = revComp(seq[-1])
-                            alt = revComp(seq[-1] + alt)
-                            info += ";IMPRECISE"
+                            bp = pos - 1 # pos is the last common base before the variant
+                            ref = reference[chrnum][pos-2]
+                            alt = reference[chrnum][pos-2] + revComp(alt)
+                        
                         else: # Forward strand
-                            bp = pos + len(seq) - 1
+                            bp = pos + len(seq) - 1 # '-1' means inclusion of the last common base before the variant
                             ref = seq[-1]
                             alt = seq[-1] + alt
                     
@@ -138,10 +193,14 @@ with open(args.sam, "r") as f:
                             info = "VC=DIV"
                         
                         if flag == 16: # Reverse strand
-                            bp = pos - len(ref) # Best estimate
-                            ref = revComp(seq[-1] + ref)
-                            alt = revComp(seq[-1])
-                            info += ";IMPRECISE"
+                            bp = pos - len(ref) - 1
+                            start = pos-len(ref)-2 # 0-based
+                            ref = reference[chrnum][start] + revComp(ref)
+                            alt = reference[chrnum][start]
+
+                            if info == "VC=SV":
+                                info += ";IMPRECISE"
+                        
                         else: # Forward strand
                             bp = pos + len(seq) - 1
                             ref = seq[-1] + ref
@@ -152,19 +211,21 @@ with open(args.sam, "r") as f:
                         info = "VC=BP" # BP: unassigned breakpoint
 
                         if flag == 16: # Reverse strand
-                            bp = pos - len(ref) # Best estimate
-                            ref = revComp(seq[-1] + ref)
-                            alt = revComp(seq[-1] + alt)
+                            bp = pos - len(ref) - 1 # Best estimate
+                            start = pos-len(ref)-2 # 0-based
+                            ref = reference[chrnum][start] + revComp(ref)
+                            alt = reference[chrnum][start] + revComp(alt)
                             info += ";IMPRECISE"
+                        
                         else: # Forward strand
                             bp = pos + len(seq) - 1
                             ref = seq[-1] + ref
                             alt = seq[-1] + alt
-                
-                locus = (chrnum, bp, ref, alt)
-                
-                if not locus in vcfs:
-                    vcfs[locus] = [id, ".", ".", info]
+
+                    locus = (chrnum, bp, ref, alt)
+
+                    if not locus in vcfs:
+                        vcfs[locus] = [id, ".", ".", info]
 
 # Output
 print("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO")
@@ -186,5 +247,4 @@ for locus in sorted(vcfs, key=operator.itemgetter(0, 1)):
     filter = vcfs[locus][2]
     info = vcfs[locus][3]
 
-    print(chrchar, pos, id, ref, alt, qual, filter, sep='\t', end='\t')
-    print(info)
+    print(chrchar, pos, id, ref, alt, qual, filter, info, sep='\t')
