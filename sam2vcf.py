@@ -178,7 +178,7 @@ with open(args.sam, "r") as f:
                             bp = pos - 1 # pos is the last common base before the variant
                             ref = reference[chrnum][pos-2]
                             alt = reference[chrnum][pos-2] + revComp(alt)
-                        
+
                         else: # Forward strand
                             bp = pos + len(seq) - 1 # '-1' means inclusion of the last common base before the variant
                             ref = seq[-1]
@@ -194,7 +194,7 @@ with open(args.sam, "r") as f:
                         
                         if flag == 16: # Reverse strand
                             bp = pos - len(ref) - 1
-                            start = pos-len(ref)-2 # 0-based
+                            start = pos - len(ref) - 2 # 0-based
                             ref = reference[chrnum][start] + revComp(ref)
                             alt = reference[chrnum][start]
 
@@ -212,7 +212,7 @@ with open(args.sam, "r") as f:
 
                         if flag == 16: # Reverse strand
                             bp = pos - len(ref) - 1 # Best estimate
-                            start = pos-len(ref)-2 # 0-based
+                            start = pos - len(ref) - 2 # 0-based
                             ref = reference[chrnum][start] + revComp(ref)
                             alt = reference[chrnum][start] + revComp(alt)
                             info += ";IMPRECISE"
