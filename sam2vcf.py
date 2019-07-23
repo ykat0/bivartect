@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# sam2vcf.py ver. 1.1.0
+# sam2vcf.py ver. 1.1.1
 # Copyright (C) 2019 Yuki Kato
 # This script is used to convert SAM alignments for Bivartect into predicted VCF variants.
 # The output will be shown in standard out.
@@ -17,7 +17,7 @@ import argparse
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     usage='./sam2vcf.py [option]* <sam> <fasta>',
-    description='sam2vcf.py ver. 1.1.0\n\nThis script is used to convert SAM alignments for Bivartect into predicted VCF variants.\nThe output will be shown in standard out.\n\nThe variation class (VC) consists of:\n\n SNV: single nucleotide variant\n DIV: deletion/insertion variant\n SV: structural variant of length >= 50 bp\n BP: unassigned breakpoint\n\nNote: predicted variants on the reverse strand will appear on the forward strand in the VCF output.'
+    description='sam2vcf.py ver. 1.1.1\n\nThis script is used to convert SAM alignments for Bivartect into predicted VCF variants.\nThe output will be shown in standard out.\n\nThe variation class (VC) consists of:\n\n  SNV: single nucleotide variant\n  DIV: deletion/insertion variant\n  SV: structural variant of length >= 50 bp\n  BP: unassigned breakpoint\n\nNote: predicted variants on the reverse strand will appear on the forward strand in the VCF output.'
 )
 parser.add_argument('sam', metavar='sam <STR>', type=str,
                     help='path to the SAM alignments for Bivartect')
@@ -57,9 +57,6 @@ def readFASTA(obj, num_lines):
             reference[chrnum] = seq # For the current chromosome
 
 def revComp(seq):
-    if seq == "-":
-        return "-"
-
     r_seq = seq[::-1]
     rc_seq = ""
 
@@ -160,15 +157,15 @@ with open(args.sam, "r") as f:
 
                         if flag == 16: # Reverse strand
                             bp = pos - 1
-                            ref = revComp(ref)
-                            alt = revComp(alt)
+                            ref = revComp(ref.upper())
+                            alt = revComp(alt.upper())
                         
                         else: # Forward strand
                             bp = pos + len(seq)
                     
                     # Case: INS
                     elif ref == "-":
-                        if "*" in alt:
+                        if len(alt) >= 50 or "*" in alt:
                             info = "VC=SV"
                         
                         else:
@@ -177,7 +174,7 @@ with open(args.sam, "r") as f:
                         if flag == 16: # Reverse strand
                             bp = pos - 1 # pos is the last common base before the variant
                             ref = reference[chrnum][pos-2]
-                            alt = reference[chrnum][pos-2] + revComp(alt)
+                            alt = reference[chrnum][pos-2] + revComp(alt.upper())
 
                         else: # Forward strand
                             bp = pos + len(seq) - 1 # '-1' means inclusion of the last common base before the variant
@@ -186,7 +183,7 @@ with open(args.sam, "r") as f:
                     
                     # Case: DEL
                     elif alt == "-":
-                        if "*" in ref:
+                        if len(ref) >= 50 or "*" in ref:
                             info = "VC=SV"
                         
                         else:
@@ -195,10 +192,10 @@ with open(args.sam, "r") as f:
                         if flag == 16: # Reverse strand
                             bp = pos - len(ref) - 1
                             start = pos - len(ref) - 2 # 0-based
-                            ref = reference[chrnum][start] + revComp(ref)
+                            ref = reference[chrnum][start] + revComp(ref.upper())
                             alt = reference[chrnum][start]
 
-                            if info == "VC=SV":
+                            if "*" in ref:
                                 info += ";IMPRECISE"
                         
                         else: # Forward strand
@@ -213,8 +210,8 @@ with open(args.sam, "r") as f:
                         if flag == 16: # Reverse strand
                             bp = pos - len(ref) - 1 # Best estimate
                             start = pos - len(ref) - 2 # 0-based
-                            ref = reference[chrnum][start] + revComp(ref)
-                            alt = reference[chrnum][start] + revComp(alt)
+                            ref = reference[chrnum][start] + revComp(ref.upper())
+                            alt = reference[chrnum][start] + revComp(alt.upper())
                             info += ";IMPRECISE"
                         
                         else: # Forward strand
