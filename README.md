@@ -97,7 +97,7 @@ $ ./sam2vcf.py <out.sam> <reference.fa.gz> > <out.vcf>
 ## Reference
 Keisuke Shimmura, Yuki Kato and Yukio Kawahara,
 **Bivartect: accurate and memory-saving breakpoint detection by direct read comparison**,
-*submitted*.
+*Bioinformatics*, in press.
 
 ---
 If you have any questions, please contact [Yuki Kato](http://www.med.osaka-u.ac.jp/pub/rna/ykato/)  
