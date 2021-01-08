@@ -94,7 +94,7 @@ $ ./sam2vcf.py <out.sam> <reference.fa.gz> > <out.vcf>
 ```
 
 ## Data
-* Simulated benchmark FASTQ data used in this work are available [HERE](http://www.med.osaka-u.ac.jp/pub/rna/ykato/temp/Bivartect/).
+* Simulated benchmark FASTQ data used in this work are available [HERE](http://www.med.osaka-u.ac.jp/pub/rna/ykato/project/bivartect/).
 
 ## Reference
 Keisuke Shimmura, Yuki Kato and Yukio Kawahara,
